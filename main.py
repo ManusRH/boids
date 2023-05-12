@@ -113,8 +113,8 @@ class CreateBoid:
         avg_speed_y /= len(close_boids)
 
         # Follow the flock
-        self.speed_x -= avg_speed_x / weight_r2  # originally 40
-        self.speed_y -= avg_speed_y / weight_r2  # originally 40
+        self.speed_x += avg_speed_x / weight_r2  # originally 40
+        self.speed_y += avg_speed_y / weight_r2  # originally 40
 
     # Move closer to other boids - rule 3
     def move_closer(self, close_boids, weight_r3):  # Boids needs to be a list
