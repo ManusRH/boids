@@ -267,30 +267,42 @@ class CreateLure:
 
 
 class Slider:
-    def __init__(self, pos_x, pos_y):
-        pos_x /= 2
-        pos_x += 190
+    def __init__(self, weight, pos_y):
+        self.weight = weight
+        self.set_pos_x_from_weight()
+        self.pos_y = pos_y - half_boid_size
+        self.dragging = False
 
-        pos_x -= half_boid_size
-        pos_y -= half_boid_size
+    def set_pos_x_from_weight(self):
+        self.pos_x = self.weight / 2 + 190 - half_boid_size
 
-        self.pos_x = pos_x
-        self.pos_y = pos_y
+    def set_weight_from_pos_x(self):
+        self.weight = (self.pos_x - 190 + half_boid_size) * 2
 
-    def slide(self, weight):
+    def restrict_weight(self):
+        self.weight = min(self.weight, 200)
+        self.weight = max(self.weight, 1)
+
+    def slide(self, mouse_down_start_pos):
         pygame.draw.rect(window, white, [self.pos_x, self.pos_y + 1, boid_size, boid_size], 1)
         s_x_pos, s_y_pos = pygame.mouse.get_pos()
+        mouse_pressed = pygame.mouse.get_pressed()[0]
 
-        if weight > 200:
-            return 200
-        elif weight < 1:
-            return 1
-        elif self.pos_x <= s_x_pos <= self.pos_x + boid_size \
-                and self.pos_y <= s_y_pos <= self.pos_y + boid_size \
-                and 200 >= weight >= 1 and pygame.mouse.get_pressed()[0]:
-            return (s_x_pos - 190) * 2
+        if mouse_pressed \
+           and self.pos_x <= mouse_down_start_pos[0] <= self.pos_x + boid_size \
+           and self.pos_y <= mouse_down_start_pos[1] <= self.pos_y + boid_size:
+            self.dragging = True
 
-        return weight
+        if not mouse_pressed:
+            self.dragging = False
+
+        if self.dragging:
+            self.pos_x = s_x_pos - half_boid_size
+            self.set_weight_from_pos_x()
+            self.restrict_weight()
+            self.set_pos_x_from_weight()
+
+        return self.weight
 
 
 # Functions
@@ -324,10 +336,16 @@ def main_loop():
     rule1 = 0
     rule2 = 0
     rule3 = 0
+    r_w_1 = Slider(weight1, 13)
+    r_w_2 = Slider(weight2, 35)
+    r_w_3 = Slider(weight3, 57)
 
     # Choose block
     tool = 0
     mouse_block = 0
+
+    # Mouse down start position
+    mouse_down_start_pos = None
 
     while running:
         window.fill(light_black)
@@ -346,6 +364,9 @@ def main_loop():
 
             # Mouse-press
             if event.type == pygame.MOUSEBUTTONDOWN:
+                if mouse_down_start_pos == None:
+                    mouse_down_start_pos = pygame.mouse.get_pos()
+
                 if safe_y > 80:
                     # Create and delete boid - tool 0
                     if event.button == 1 and tool == 0:  # 1 = Left click
@@ -380,6 +401,9 @@ def main_loop():
                     tool += 1
                 elif event.button == 5 and tool > 0:  # 5 = scroll down
                     tool -= 1
+
+            if event.type == pygame.MOUSEBUTTONUP:
+                mouse_down_start_pos = None
 
             # Key-press
             if event.type == pygame.KEYDOWN:
@@ -520,20 +544,17 @@ def main_loop():
 
         #  Slier for rule 1
         pygame.draw.line(window, white, (190, 13), (290, 13), 2)
-        r_w_1 = Slider(weight1, 13)
-        weight1 = r_w_1.slide(weight1)
+        weight1 = r_w_1.slide(mouse_down_start_pos)
         print_text("Weight 1: " + str(weight1), white, 21, (300, 8))
 
         # Slider for rule 2
         pygame.draw.line(window, white, (190, 35), (290, 35), 2)
-        r_w_2 = Slider(weight2, 35)
-        weight2 = r_w_2.slide(weight2)
+        weight2 = r_w_2.slide(mouse_down_start_pos)
         print_text("Weight 2: " + str(weight2), white, 21, (300, 30))
 
         # Slider for rule 3
         pygame.draw.line(window, white, (190, 57), (290, 57), 2)
-        r_w_3 = Slider(weight3, 57)
-        weight3 = r_w_3.slide(weight3)
+        weight3 = r_w_3.slide(mouse_down_start_pos)
         print_text("Weight 3: " + str(weight3), white, 21, (300, 52))
 
         pygame.display.update()
